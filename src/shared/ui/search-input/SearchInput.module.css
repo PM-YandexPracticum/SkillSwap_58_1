@@ -1,0 +1,33 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  border: none;
+  background-color: var(--color-bg);
+  color: #253017;
+  font-size: var(--font-size-base);
+  line-height: 24px;
+  text-align: left;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input::placeholder {
+  color: #69735D;
+}
