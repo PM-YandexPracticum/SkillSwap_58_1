@@ -88,3 +88,27 @@ type Story = StoryObj<typeof meta>
 export const SeveralSections: Story = {
   render: () => <CatalogSectionPreview />,
 }
+
+export const WithSkeletons: Story = {
+  render: () => (
+    <div
+      style={{
+        padding: 24,
+        minHeight: '100vh',
+        backgroundColor: 'var(--color-bg)',
+        color: 'var(--color-text)',
+      }}
+    >
+      <CatalogSection
+        title="Загрузка (скелетоны)"
+        users={users.slice(0, 5)}
+        favoriteIds={[]}
+        onDetails={() => {}}
+        onFavoriteToggle={() => {}}
+        hasMore={true}
+        isLoadingMore={true}
+        onLoadMore={() => console.log('Загрузка еще...')}
+      />
+    </div>
+  ),
+}

@@ -7,6 +7,10 @@ export interface LoginRequest {
   password: string
 }
 
+export type ProfileUpdate = Partial<
+  Pick<User, 'email' | 'name' | 'birthDate' | 'gender' | 'city' | 'bio'>
+>
+
 export type RegisterRequest = LoginRequest &
   Pick<User, 'name' | 'birthDate' | 'gender' | 'city' | 'wantsToLearn'> & {
     canTeach: Pick<Skill, 'title' | 'category' | 'subCategory' | 'description'>
@@ -36,8 +40,16 @@ export interface ListQuery {
   q?: string
 }
 
+export interface SwapRequestListQuery extends Pick<ListQuery, 'page' | 'limit'> {
+  role?: string
+  status?: string
+}
+
 export interface UserListQuery extends ListQuery {
   gender?: string
   city?: string
+  'city[]'?: string | string[]
+  name?: string
+  'ids[]'?: string | string[]
   'subCategoryId[]'?: string | string[]
 }

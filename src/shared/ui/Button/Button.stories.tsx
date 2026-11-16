@@ -99,3 +99,14 @@ export const LongTextWithIconRight: Story = {
     </Button>
   ),
 }
+
+export const Loading: Story = {
+  args: { variant: 'primary' },
+  render: () => (
+    <div style={{ width: 436 }}>
+      <Button variant="primary" isLoading style={{ width: '100%' }}>
+        Войти
+      </Button>
+    </div>
+  ),
+}

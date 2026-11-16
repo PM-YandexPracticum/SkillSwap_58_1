@@ -1,6 +1,39 @@
 .avatar {
+  display: block;
+  flex-shrink: 0;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.fallback {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--skeleton-bg);
+  color: var(--color-text-placeholder);
+}
+
+.fallback::before {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  width: 28%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background-color: currentcolor;
+  transform: translateX(-50%);
+  content: '';
+}
+
+.fallback::after {
+  position: absolute;
+  bottom: -8%;
+  left: 50%;
+  width: 65%;
+  height: 50%;
+  border-radius: 50% 50% 0 0;
+  background-color: currentcolor;
+  transform: translateX(-50%);
+  content: '';
 }
 
 .sm {

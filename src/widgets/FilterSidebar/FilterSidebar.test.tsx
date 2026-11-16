@@ -1,66 +1,52 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
+import { describe, it, expect } from 'vitest'
 import { FilterSidebar } from './FilterSidebar'
-import { INITIAL_FILTERS_STATE } from '../../shared/lib/constants'
+import { CITIES } from '@/shared/lib/constants'
+
+const renderWithRouter = (initialEntries: string[] = ['/']) => {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <FilterSidebar />
+    </MemoryRouter>,
+  )
+}
 
 describe('FilterSidebar', () => {
-  it('вызывает setFilters при выборе режима', async () => {
+  it('вызывает изменение URL при выборе режима', async () => {
     const user = userEvent.setup()
-    const setFilters = vi.fn()
+    renderWithRouter(['/'])
 
-    render(
-      <FilterSidebar filters={INITIAL_FILTERS_STATE} setFilters={setFilters} onReset={vi.fn()} />,
-    )
+    await user.click(screen.getByLabelText('Хочу научиться'))
 
-    await user.click(screen.getByText('Хочу научиться'))
-    expect(setFilters).toHaveBeenCalled()
+    expect(screen.getByLabelText('Хочу научиться')).toBeChecked()
   })
 
   it('показывает счетчик и кнопку сброса, если есть активные фильтры', () => {
-    render(
-      <FilterSidebar
-        filters={{
-          ...INITIAL_FILTERS_STATE,
-          cities: ['Москва', 'Казань'],
-        }}
-        setFilters={vi.fn()}
-        onReset={vi.fn()}
-      />,
-    )
+    renderWithRouter([`/?city=${CITIES[0]}`])
 
-    expect(screen.getByText('Фильтры (2)')).toBeInTheDocument()
+    expect(screen.getByText(/Фильтры \(1\)/)).toBeInTheDocument()
     expect(screen.getByText('Сбросить')).toBeInTheDocument()
   })
 
-  it('вызывает onReset при клике на кнопку сброса', async () => {
+  it('очищает URL при клике на кнопку сброса', async () => {
     const user = userEvent.setup()
-    const onReset = vi.fn()
+    renderWithRouter([`/?city=${CITIES[0]}`])
 
-    render(
-      <FilterSidebar
-        filters={{ ...INITIAL_FILTERS_STATE, cities: ['Москва'] }}
-        setFilters={vi.fn()}
-        onReset={onReset}
-      />,
-    )
+    const resetBtn = screen.getByText('Сбросить')
+    await user.click(resetBtn)
 
-    await user.click(screen.getByText('Сбросить'))
-    expect(onReset).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Фильтры')).toBeInTheDocument()
   })
 
-  it('вызывает setFilters с массивом городов при выборе чекбокса', async () => {
+  it('выбирает город при клике на чекбокс', async () => {
     const user = userEvent.setup()
-    const setFilters = vi.fn()
+    renderWithRouter(['/'])
 
-    render(
-      <FilterSidebar filters={INITIAL_FILTERS_STATE} setFilters={setFilters} onReset={vi.fn()} />,
-    )
+    const cityCheckbox = screen.getByLabelText(CITIES[0])
+    await user.click(cityCheckbox)
 
-    await user.click(screen.getByText('Москва'))
-
-    expect(setFilters).toHaveBeenCalled()
-    const callback = setFilters.mock.calls[0][0]
-    expect(callback(INITIAL_FILTERS_STATE).cities).toEqual(['Москва'])
+    expect(cityCheckbox).toBeChecked()
   })
 })

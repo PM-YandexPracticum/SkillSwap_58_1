@@ -8,6 +8,8 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   padding: var(--btn-padding-y) var(--btn-padding-x);
+  position: relative;
+  overflow: hidden;
 }
 
 .size_sm {
@@ -115,4 +117,15 @@
 
 [data-theme='dark'] .variant_secondary:hover:not(:disabled) {
   background: #14532d;
+}
+
+.loading .label,
+.loading .icon,
+.loading .trailingIcon {
+  visibility: hidden;
+}
+
+.skeleton {
+  position: absolute;
+  inset: 0;
 }

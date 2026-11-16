@@ -1,22 +1,24 @@
-import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { fn } from 'storybook/test'
+import { useEffect } from 'react'
 import { FilterSidebar } from './FilterSidebar'
-import { FiltersState } from '../../shared/types/index'
-import { CITIES, INITIAL_FILTERS_STATE, SKILL_CATEGORIES } from '../../shared/lib/constants'
+import { CITIES, SKILL_CATEGORIES } from '../../shared/lib/constants'
 
 const subcategoryId = SKILL_CATEGORIES[0].subcategories[1].id
 const firstCity = CITIES[0]
 const secondCity = CITIES[1]
 
-type CustomFilterSidebarArgs = React.ComponentProps<typeof FilterSidebar> & {
-  initialFilters: FiltersState
-  onReset: () => void
+const UrlSetter = ({ url }: { url: string }) => {
+  useEffect(() => {
+    window.history.pushState({}, '', url)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }, [url])
+
+  return <FilterSidebar />
 }
 
-const meta: Meta<CustomFilterSidebarArgs> = {
+const meta: Meta<typeof UrlSetter> = {
   title: 'Widgets/FilterSidebar',
-  component: FilterSidebar,
+  component: UrlSetter,
   tags: ['autodocs'],
   decorators: [
     (Story) => (
@@ -28,44 +30,16 @@ const meta: Meta<CustomFilterSidebarArgs> = {
 }
 
 export default meta
-type Story = StoryObj<CustomFilterSidebarArgs>
-
-const renderFilterSidebar = (args: CustomFilterSidebarArgs) => {
-  const [filters, setFilters] = useState<FiltersState>(args.initialFilters || INITIAL_FILTERS_STATE)
-
-  return (
-    <FilterSidebar
-      filters={filters}
-      setFilters={setFilters}
-      onReset={() => {
-        setFilters(INITIAL_FILTERS_STATE)
-        args.onReset?.()
-      }}
-    />
-  )
-}
+type Story = StoryObj<typeof UrlSetter>
 
 export const Default: Story = {
-  render: renderFilterSidebar,
   args: {
-    initialFilters: INITIAL_FILTERS_STATE,
-    onReset: fn(),
-    filters: INITIAL_FILTERS_STATE,
-    setFilters: () => {},
+    url: '/',
   },
 }
 
 export const WithActiveFilters: Story = {
-  render: renderFilterSidebar,
   args: {
-    initialFilters: {
-      ...INITIAL_FILTERS_STATE,
-      mode: 'wantToLearn',
-      skillIds: [subcategoryId],
-      cities: [firstCity, secondCity],
-    },
-    onReset: fn(),
-    filters: INITIAL_FILTERS_STATE,
-    setFilters: () => {},
+    url: `/?type=learn&subCategoryId[]=${subcategoryId}&city=${firstCity}&city=${secondCity}`,
   },
 }

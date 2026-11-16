@@ -50,6 +50,19 @@
   background-color: var(--color-bg);
 }
 
+.chevron {
+  display: block;
+  color: var(--color-text-caption);
+  transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+  display: block;
+  color: var(--color-text-caption);
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
+}
+
 .clearIndicator {
   display: flex;
   align-items: center;

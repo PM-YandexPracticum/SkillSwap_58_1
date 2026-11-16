@@ -6,25 +6,47 @@ describe('Avatar', () => {
   it('с валидным src рендерит img с src и alt', () => {
     render(<Avatar src="/avatar.jpg" alt="Аватар Ивана" />)
 
-    const img = screen.getByRole('img')
+    const img = screen.getByRole('img', { name: 'Аватар Ивана' })
 
     expect(img).toHaveAttribute('src', '/avatar.jpg')
     expect(img).toHaveAttribute('alt', 'Аватар Ивана')
   })
 
-  it('при src === null ничего не рендерит', () => {
+  it('при src === null показывает заглушку', () => {
     render(<Avatar src={null} alt="Аватар" />)
 
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Аватар' })).toHaveClass(styles.fallback)
   })
 
-  it('при ошибке загрузки картинка исчезает', () => {
-    render(<Avatar src="/broken.jpg" alt="Аватар" />)
+  it('при отсутствии src показывает заглушку', () => {
+    render(<Avatar alt="Аватар" />)
 
-    const img = screen.getByRole('img')
-    fireEvent.error(img)
+    expect(screen.getByRole('img', { name: 'Аватар' })).toHaveClass(styles.fallback)
+  })
 
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  it.each(['', '   '])('при пустом src="%s" показывает заглушку', (src) => {
+    render(<Avatar src={src} alt="Аватар" />)
+
+    expect(screen.getByRole('img', { name: 'Аватар' })).toHaveClass(styles.fallback)
+  })
+
+  it('при ошибке загрузки показывает заглушку вместо изображения', () => {
+    const { container } = render(<Avatar src="/broken.jpg" alt="Аватар" />)
+
+    fireEvent.error(screen.getByRole('img'))
+
+    expect(screen.getByRole('img', { name: 'Аватар' })).toHaveClass(styles.fallback)
+    expect(container.querySelector('img')).not.toBeInTheDocument()
+  })
+
+  it('при изменении src после ошибки показывает новое изображение', () => {
+    const { rerender } = render(<Avatar src="/broken.jpg" alt="Аватар" />)
+
+    fireEvent.error(screen.getByRole('img'))
+
+    rerender(<Avatar src="/avatar.jpg" alt="Аватар" />)
+
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/avatar.jpg')
   })
 
   it('по умолчанию применяет класс md', () => {
@@ -37,5 +59,11 @@ describe('Avatar', () => {
     render(<Avatar src="/avatar.jpg" alt="Аватар" size={size} />)
 
     expect(screen.getByRole('img')).toHaveClass(styles[size])
+  })
+
+  it.each(['sm', 'md', 'lg'] as const)('заглушка размера %s сохраняет нужный класс', (size) => {
+    render(<Avatar src={null} alt="Аватар" size={size} />)
+
+    expect(screen.getByRole('img', { name: 'Аватар' })).toHaveClass(styles[size], styles.fallback)
   })
 })

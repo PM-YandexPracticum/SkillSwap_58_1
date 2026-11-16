@@ -1,0 +1,24 @@
+.page {
+  padding: var(--space-xl) 0;
+  background-color: var(--color-bg);
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 36px;
+  display: flex;
+  gap: var(--space-xl);
+  align-items: flex-start;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sections {
+  display: grid;
+  gap: 40px;
+}

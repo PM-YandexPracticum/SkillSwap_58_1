@@ -1,30 +1,55 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom/vitest'
 import { RegistrationWidget } from './RegistrationWidget'
+
+vi.mock('@/features/registration/model/useRegistrationSubmit', () => ({
+  useRegistrationSubmit: () => ({
+    registerUser: vi.fn().mockResolvedValue(true),
+    isSubmitting: false,
+    error: null,
+    clearError: vi.fn(),
+  }),
+}))
+
+const renderWidget = (props: { step: number; onNext?: () => void; onBack?: () => void }) =>
+  render(
+    <MemoryRouter>
+      <RegistrationWidget {...props} />
+    </MemoryRouter>,
+  )
 
 describe('RegistrationWidget', () => {
   // ─────────────── ШАГ 1 ───────────────
   describe('шаг 1', () => {
     it('отображает поля первого шага', () => {
-      render(<RegistrationWidget step={1} />)
+      renderWidget({ step: 1 })
 
-      expect(screen.getByRole('button', { name: /Продолжить с Google/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /Продолжить с Apple/i })).toBeInTheDocument()
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
       expect(screen.getByLabelText('Пароль')).toBeInTheDocument()
     })
+    it('ссылка «Войти» ведёт на страницу входа', () => {
+      render(<RegistrationWidget step={1} />, { wrapper: MemoryRouter })
 
-    it('вызывает onNext по клику на «Далее»', () => {
+      expect(screen.getByRole('link', { name: 'Войти' })).toHaveAttribute('href', '/login')
+    })
+
+    it('вызывает onNext после заполнения валидных полей шага', async () => {
       const onNext = vi.fn()
-      render(<RegistrationWidget step={1} onNext={onNext} />)
+      const user = userEvent.setup()
+      renderWidget({ step: 1, onNext })
 
-      fireEvent.click(screen.getByRole('button', { name: 'Далее' }))
-      expect(onNext).toHaveBeenCalledTimes(1)
+      await user.type(screen.getByLabelText('Email'), 'user@example.com')
+      await user.type(screen.getByLabelText('Пароль'), 'secure-pass-123')
+      await user.click(screen.getByRole('button', { name: 'Далее' }))
+
+      await waitFor(() => expect(onNext).toHaveBeenCalledOnce())
     })
 
     it('не показывает кнопку «Назад»', () => {
-      render(<RegistrationWidget step={1} />)
+      renderWidget({ step: 1 })
       expect(screen.queryByRole('button', { name: 'Назад' })).not.toBeInTheDocument()
     })
   })
@@ -32,7 +57,7 @@ describe('RegistrationWidget', () => {
   // ─────────────── ШАГ 2 ───────────────
   describe('шаг 2', () => {
     it('отображает поля второго шага', () => {
-      render(<RegistrationWidget step={2} />)
+      renderWidget({ step: 2 })
 
       expect(screen.getByLabelText('Загрузить аватар')).toBeInTheDocument()
       expect(screen.getByLabelText('Имя')).toBeInTheDocument()
@@ -43,17 +68,19 @@ describe('RegistrationWidget', () => {
       expect(screen.getByText('Подкатегория навыка, которому хотите научиться')).toBeInTheDocument()
     })
 
-    it('вызывает onNext по клику на «Продолжить»', () => {
+    it('не вызывает onNext, пока обязательные поля шага не заполнены', async () => {
       const onNext = vi.fn()
-      render(<RegistrationWidget step={2} onNext={onNext} />)
+      renderWidget({ step: 2, onNext })
 
       fireEvent.click(screen.getByRole('button', { name: 'Продолжить' }))
-      expect(onNext).toHaveBeenCalledTimes(1)
+
+      expect(await screen.findByText('Введите имя')).toBeInTheDocument()
+      expect(onNext).not.toHaveBeenCalled()
     })
 
     it('вызывает onBack по клику на «Назад»', () => {
       const onBack = vi.fn()
-      render(<RegistrationWidget step={2} onBack={onBack} />)
+      renderWidget({ step: 2, onBack })
 
       fireEvent.click(screen.getByRole('button', { name: 'Назад' }))
       expect(onBack).toHaveBeenCalledTimes(1)
@@ -63,7 +90,7 @@ describe('RegistrationWidget', () => {
   // ─────────────── ШАГ 3 ───────────────
   describe('шаг 3', () => {
     it('отображает поля третьего шага', () => {
-      render(<RegistrationWidget step={3} />)
+      renderWidget({ step: 3 })
 
       expect(screen.getByLabelText('Название навыка')).toBeInTheDocument()
       expect(screen.getByText('Категория навыка')).toBeInTheDocument()
@@ -72,17 +99,21 @@ describe('RegistrationWidget', () => {
       expect(screen.getByText('Перетащите или выберите изображения навыка')).toBeInTheDocument()
     })
 
-    it('вызывает onNext по клику на «Продолжить»', () => {
+    it('не вызывает onNext при невалидной форме и не открывает модалку', async () => {
       const onNext = vi.fn()
-      render(<RegistrationWidget step={3} onNext={onNext} />)
+      renderWidget({ step: 3, onNext })
 
       fireEvent.click(screen.getByRole('button', { name: 'Продолжить' }))
-      expect(onNext).toHaveBeenCalledTimes(1)
+
+      expect(await screen.findByText('Введите название навыка')).toBeInTheDocument()
+      expect(onNext).not.toHaveBeenCalled()
+
+      expect(screen.queryByText('Ваше предложение')).not.toBeInTheDocument()
     })
 
     it('вызывает onBack по клику на «Назад»', () => {
       const onBack = vi.fn()
-      render(<RegistrationWidget step={3} onBack={onBack} />)
+      renderWidget({ step: 3, onBack })
 
       fireEvent.click(screen.getByRole('button', { name: 'Назад' }))
       expect(onBack).toHaveBeenCalledTimes(1)
@@ -90,10 +121,12 @@ describe('RegistrationWidget', () => {
   })
 
   //
-  it('не падает при клике на кнопки, если onNext/onBack не переданы', () => {
-    render(<RegistrationWidget step={2} />)
+  it('не падает при клике на кнопки, если onNext/onBack не переданы', async () => {
+    const user = userEvent.setup()
+    renderWidget({ step: 2 })
 
-    expect(() => fireEvent.click(screen.getByRole('button', { name: 'Продолжить' }))).not.toThrow()
-    expect(() => fireEvent.click(screen.getByRole('button', { name: 'Назад' }))).not.toThrow()
+    await user.click(screen.getByRole('button', { name: 'Продолжить' }))
+    await screen.findByText('Введите имя')
+    await user.click(screen.getByRole('button', { name: 'Назад' }))
   })
 })

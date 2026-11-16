@@ -1,17 +1,35 @@
+import { useMemo } from 'react'
 import { useAppDispatch } from '@/store/hooks'
-import { addNotification } from './notificationsSlice'
+import { addNotification, type NotificationItem } from './notificationsSlice'
 
 const DEFAULT_DURATION = 5000
+
+export type NotifyOptions = {
+  duration?: number
+  exchangeSkillId?: string
+}
 
 export function useNotify() {
   const dispatch = useAppDispatch()
 
-  return {
-    success: (message: string, title = 'Успешно') =>
-      dispatch(addNotification({ type: 'success', title, message, duration: DEFAULT_DURATION })),
-    error: (message: string, title = 'Ошибка') =>
-      dispatch(addNotification({ type: 'error', title, message, duration: DEFAULT_DURATION })),
-    info: (message: string, title = 'Инфо') =>
-      dispatch(addNotification({ type: 'info', title, message, duration: DEFAULT_DURATION })),
-  }
+  return useMemo(() => {
+    const notify =
+      (type: NotificationItem['type'], defaultTitle: string) =>
+      (message: string, title = defaultTitle, options: NotifyOptions = {}) =>
+        dispatch(
+          addNotification({
+            type,
+            title,
+            message,
+            duration: options.duration ?? DEFAULT_DURATION,
+            ...(options.exchangeSkillId ? { exchangeSkillId: options.exchangeSkillId } : {}),
+          }),
+        )
+
+    return {
+      success: notify('success', 'Успешно'),
+      error: notify('error', 'Ошибка'),
+      info: notify('info', 'Инфо'),
+    }
+  }, [dispatch])
 }

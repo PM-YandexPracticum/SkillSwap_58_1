@@ -1,20 +1,33 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { Provider } from 'react-redux'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LOCAL_STORAGE_KEYS } from '@/shared/lib/constants'
-import authReducer from './authSlice'
+import authReducer, { logout, setAuthUser } from './authSlice'
+import notificationsReducer from '@/features/notifications/model/notificationsSlice'
+import { saveServerAuthUser } from './authUtils'
 import { useAuthForm } from './useAuthForm'
+import { MemoryRouter } from 'react-router'
 
-const { loginMock, loadingState } = vi.hoisted(() => ({
+const { loginMock, profileMock, loadingState } = vi.hoisted(() => ({
   loginMock: vi.fn(),
+  profileMock: vi.fn(),
   loadingState: { isLoading: false },
 }))
 
 vi.mock('../api/authApi', () => ({
   useLoginMutation: () => [loginMock, loadingState],
+  authApi: {
+    endpoints: {
+      getAuthMe: {
+        initiate: () => () => ({
+          unwrap: profileMock,
+        }),
+      },
+    },
+  },
 }))
 
 const user = {
@@ -22,6 +35,25 @@ const user = {
   name: 'Анна',
   email: 'anna.smirnova@example.com',
   token: 'token-user-01',
+}
+
+const profile = {
+  id: 'user-01',
+  name: 'Анна',
+  email: 'anna.smirnova@example.com',
+  avatarUrl: null,
+  birthDate: '1995-02-08T00:00:00.000Z',
+  gender: 'female',
+  city: 'Москва',
+  bio: 'Люблю рисовать',
+  createdAt: '2025-01-01T00:00:00.000Z',
+  likes: [],
+  canTeach: {
+    id: 'skill-01',
+    category: 'art',
+    subCategory: 'illustration',
+  },
+  wantsToLearn: [],
 }
 
 function AuthFormProbe() {
@@ -52,14 +84,18 @@ function AuthFormProbe() {
 
 function renderAuthForm() {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, notifications: notificationsReducer },
     preloadedState: {
-      auth: { user: null },
+      auth: { user: null, profile: null },
     },
   })
 
   function wrapper({ children }: { children: ReactNode }) {
-    return <Provider store={store}>{children}</Provider>
+    return (
+      <Provider store={store}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </Provider>
+    )
   }
 
   return { store, ...render(<AuthFormProbe />, { wrapper }) }
@@ -69,7 +105,77 @@ describe('useAuthForm', () => {
   beforeEach(() => {
     localStorage.clear()
     loginMock.mockReset()
+    profileMock.mockReset()
+    profileMock.mockResolvedValue(profile)
     loadingState.isLoading = false
+  })
+
+  it('очищает сессию, если сервер отклонил токен при загрузке профиля', async () => {
+    loginMock.mockReturnValue({
+      unwrap: () => Promise.resolve(user),
+    })
+
+    profileMock.mockRejectedValue({ status: 401 })
+
+    const userEvents = userEvent.setup()
+    const { store } = renderAuthForm()
+
+    await userEvents.type(screen.getByRole('textbox', { name: 'Email' }), user.email)
+    await userEvents.type(screen.getByLabelText('Пароль'), 'test-password')
+    await userEvents.click(screen.getByRole('button', { name: 'Войти' }))
+
+    await waitFor(() => {
+      expect(store.getState().auth.user).toBeNull()
+    })
+
+    expect(store.getState().auth.profile).toBeNull()
+    expect(localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_USER)).toBeNull()
+    expect(localStorage.getItem('skillswap_user_profile')).toBeNull()
+  })
+
+  it('не сохраняет старый профиль после выхода и повторного входа', async () => {
+    loginMock.mockReturnValue({
+      unwrap: () => Promise.resolve(user),
+    })
+
+    let finishProfileRequest!: (value: typeof profile) => void
+
+    profileMock.mockReturnValue(
+      new Promise<typeof profile>((resolve) => {
+        finishProfileRequest = resolve
+      }),
+    )
+
+    const userEvents = userEvent.setup()
+    const { store } = renderAuthForm()
+
+    await userEvents.type(screen.getByRole('textbox', { name: 'Email' }), user.email)
+    await userEvents.type(screen.getByLabelText('Пароль'), 'test-password')
+    await userEvents.click(screen.getByRole('button', { name: 'Войти' }))
+
+    // Дожидаемся начала запроса профиля.
+    await waitFor(() => {
+      expect(profileMock).toHaveBeenCalled()
+    })
+
+    // Выходим и создаём новую сессию с тем же токеном.
+    await act(async () => {
+      await store.dispatch(logout())
+
+      const newUser = { ...user }
+
+      saveServerAuthUser(newUser)
+      store.dispatch(setAuthUser(newUser))
+    })
+
+    // После повторного входа приходит ответ старого запроса.
+    await act(async () => {
+      finishProfileRequest(profile)
+      await Promise.resolve()
+    })
+
+    expect(store.getState().auth.profile).toBeNull()
+    expect(localStorage.getItem('skillswap_user_profile')).toBeNull()
   })
 
   it('не отправляет пустую форму и показывает ошибки полей', async () => {
@@ -82,12 +188,22 @@ describe('useAuthForm', () => {
     expect(screen.getByText('Введите пароль')).toBeInTheDocument()
     expect(loginMock).not.toHaveBeenCalled()
   })
-  it('блокирует кнопку, пока выполняется вход', () => {
-    loadingState.isLoading = true
 
+  it('блокирует кнопку, пока выполняется вход', async () => {
+    loginMock.mockReturnValue({
+      unwrap: () => new Promise<typeof user>(() => {}), // логин "висит"
+    })
+
+    const userEvents = userEvent.setup()
     renderAuthForm()
 
-    expect(screen.getByRole('button', { name: 'Войти' })).toBeDisabled()
+    await userEvents.type(screen.getByRole('textbox', { name: 'Email' }), user.email)
+    await userEvents.type(screen.getByLabelText('Пароль'), 'test-password')
+    await userEvents.click(screen.getByRole('button', { name: 'Войти' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Войти' })).toBeDisabled()
+    })
   })
 
   it('сохраняет данные и токен после успешного входа', async () => {
@@ -114,6 +230,18 @@ describe('useAuthForm', () => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_USER)
 
     expect(JSON.parse(saved ?? 'null')).toEqual(user)
+
+    await waitFor(() => {
+      expect(store.getState().auth.profile).toEqual(profile)
+    })
+
+    const savedProfile = localStorage.getItem('skillswap_user_profile')
+
+    expect(JSON.parse(savedProfile ?? 'null')).toEqual(profile)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(store.getState().notifications.items).toEqual([
+      expect.objectContaining({ type: 'success', message: 'Вы вошли в аккаунт' }),
+    ])
   })
 
   it('показывает сообщение сервера при неверных данных', async () => {
@@ -134,6 +262,9 @@ describe('useAuthForm', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Неправильные почта или пароль')
     expect(store.getState().auth.user).toBeNull()
+    expect(store.getState().notifications.items).toEqual([
+      expect.objectContaining({ type: 'error', message: 'Неправильные почта или пароль' }),
+    ])
   })
 
   it('показывает общее сообщение, если сервер недоступен', async () => {

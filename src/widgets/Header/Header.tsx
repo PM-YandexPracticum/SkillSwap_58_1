@@ -1,9 +1,8 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ROUTES, SKILL_CATEGORIES } from '@/shared/lib/constants'
+import { getAuthReturnPath } from '@/shared/lib/authRedirect'
 import {
-  TextInput,
   CloseIcon,
-  SearchIcon,
   ChevronDown,
   Dropdown,
   Button,
@@ -17,6 +16,7 @@ import {
 } from '@/shared/ui'
 import styles from './Header.module.css'
 import { UserMenu } from '@/widgets/UserMenu'
+import { SkillSearcher } from '@/widgets/SkillSearcher'
 
 const CATEGORY_ICONS = {
   business: BriefcaseIcon,
@@ -28,9 +28,13 @@ const CATEGORY_ICONS = {
 }
 
 export function Header() {
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
+  const navigate = useNavigate()
   const normalizedPathname = pathname.replace(/\/+$/, '') || '/'
   const isCompact = normalizedPathname === ROUTES.LOGIN || normalizedPathname === ROUTES.REGISTER
+  const handleClose = () => {
+    navigate(getAuthReturnPath(state), { replace: true })
+  }
 
   if (isCompact) {
     return (
@@ -39,7 +43,12 @@ export function Header() {
           <Logo />
         </div>
         <div className={styles.right}>
-          <Button variant="tertiary" trailingIcon={<CloseIcon />} className={styles.closeButton}>
+          <Button
+            variant="tertiary"
+            trailingIcon={<CloseIcon />}
+            className={styles.closeButton}
+            onClick={handleClose}
+          >
             Закрыть
           </Button>
         </div>
@@ -87,12 +96,7 @@ export function Header() {
         </Dropdown>
       </div>
       <div className={styles.center}>
-        {/* TODO: заменить на виджет поиска по навыкам */}
-        <TextInput
-          className={styles.searchInput}
-          placeholder="Искать навык"
-          leftContent={<SearchIcon size={20} color="var(--color-text-secondary)" />}
-        />
+        <SkillSearcher />
       </div>
       <div className={styles.right}>
         <UserMenu />

@@ -4,7 +4,13 @@ import {
   type CategoryId,
   type SubCategoryId,
 } from '@/shared/lib/constants'
-import type { LoginRequest, RegisterRequest, UserListQuery } from './types'
+import type {
+  LoginRequest,
+  ProfileUpdate,
+  RegisterRequest,
+  SwapRequestListQuery,
+  UserListQuery,
+} from './types'
 
 export class HttpError extends Error {
   constructor(
@@ -48,40 +54,75 @@ function choices<T extends string>(value: unknown, values: readonly T[], field: 
 }
 
 export function parseUserFilters(query: UserListQuery) {
+  const rawCities = query['city[]']
+  const cities = rawCities === undefined ? [] : Array.isArray(rawCities) ? rawCities : [rawCities]
   const rawIds = query['subCategoryId[]']
   const ids = rawIds === undefined ? [] : Array.isArray(rawIds) ? rawIds : [rawIds]
+  const rawUserIds = query['ids[]']
+  const userIds =
+    rawUserIds === undefined ? undefined : Array.isArray(rawUserIds) ? rawUserIds : [rawUserIds]
   const allowedIds = SKILL_CATEGORIES.flatMap((category) =>
     category.subcategories.map((subCategory) => subCategory.id),
   )
   return {
+    name: query.name === undefined ? '' : text(query.name, 'name', 0).toLowerCase(),
+    userIds: userIds?.map((id) => text(id, 'ids[]')),
     gender:
       query.gender === undefined
         ? undefined
         : choice(query.gender, ['female', 'male'] as const, 'gender'),
     city: query.city === undefined ? undefined : choice(query.city, CITIES, 'city'),
+    cities: [...new Set(cities.map((city) => choice(city, CITIES, 'city[]')))],
     type: choice(query.type ?? 'all', ['learn', 'teach', 'all'] as const, 'type'),
     subCategoryIds: ids.map((id) => choice(id, allowedIds, 'subCategoryId[]')),
   }
 }
 
+export function parseSwapRequestFilters(query: SwapRequestListQuery) {
+  return {
+    role: choice(query.role ?? 'all', ['incoming', 'outgoing', 'all'] as const, 'role'),
+    status:
+      query.status === undefined
+        ? undefined
+        : choice(query.status, ['pending', 'accepted', 'rejected'] as const, 'status'),
+  }
+}
+
+export function parseSwapRequestCreate(value: unknown): { skillId: string } {
+  const data = record(value)
+  if (Object.keys(data).some((key) => key !== 'skillId')) {
+    throw new HttpError(400, 'Допустимо только поле skillId')
+  }
+  return { skillId: text(data.skillId, 'skillId') }
+}
+
+export function parseSwapRequestUpdate(value: unknown): { status: 'accepted' | 'rejected' } {
+  const data = record(value)
+  if (Object.keys(data).some((key) => key !== 'status')) {
+    throw new HttpError(400, 'Допустимо только поле status')
+  }
+  return { status: choice(data.status, ['accepted', 'rejected'] as const, 'status') }
+}
+
 export function parseLogin(value: unknown): LoginRequest {
   const data = record(value)
-  const email = text(data.email, 'email').toLowerCase()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw new HttpError(400, 'Некорректный email')
-  }
+  const email = parseEmail(data.email)
   if (typeof data.password !== 'string' || data.password.length === 0) {
     throw new HttpError(400, 'Укажите пароль')
   }
   return { email, password: data.password }
 }
 
-export function parseRegistration(value: unknown): RegisterRequest {
-  const data = record(value)
-  const credentials = parseLogin(data)
-  if (credentials.password.length < 8) throw new HttpError(400, 'Пароль короче 8 символов')
+function parseEmail(value: unknown): string {
+  const email = text(value, 'email').toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new HttpError(400, 'Некорректный email')
+  }
+  return email
+}
 
-  const birthDate = text(data.birthDate, 'birthDate')
+function parseBirthDate(value: unknown): string {
+  const birthDate = text(value, 'birthDate')
   // Канонический ISO UTC, как у Date.toISOString(); сравнение отсекает 30 февраля.
   const birth = new Date(birthDate)
   if (
@@ -92,6 +133,31 @@ export function parseRegistration(value: unknown): RegisterRequest {
   ) {
     throw new HttpError(400, 'birthDate должна быть датой ISO UTC и не находиться в будущем')
   }
+  return birthDate
+}
+
+export function parseProfileUpdate(value: unknown): ProfileUpdate {
+  const data = record(value)
+  const allowed = ['email', 'name', 'birthDate', 'gender', 'city', 'bio']
+  if (Object.keys(data).some((key) => !allowed.includes(key))) {
+    throw new HttpError(400, 'Недопустимое поле профиля')
+  }
+  const result: ProfileUpdate = {}
+  if ('email' in data) result.email = parseEmail(data.email)
+  if ('name' in data) result.name = text(data.name, 'name', 2)
+  if ('birthDate' in data) result.birthDate = parseBirthDate(data.birthDate)
+  if ('gender' in data) result.gender = choice(data.gender, ['female', 'male'] as const, 'gender')
+  if ('city' in data) result.city = choice(data.city, CITIES, 'city')
+  if ('bio' in data) result.bio = text(data.bio, 'bio', 0, 500)
+  return result
+}
+
+export function parseRegistration(value: unknown): RegisterRequest {
+  const data = record(value)
+  const credentials = parseLogin(data)
+  if (credentials.password.length < 8) throw new HttpError(400, 'Пароль короче 8 символов')
+
+  const birthDate = parseBirthDate(data.birthDate)
 
   const categoryIds: CategoryId[] = SKILL_CATEGORIES.map((category) => category.id)
   const subCategoryIds: SubCategoryId[] = SKILL_CATEGORIES.flatMap((category) =>

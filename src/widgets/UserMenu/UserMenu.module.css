@@ -34,6 +34,7 @@
 }
 
 .iconActive {
+  color: #a8d276;
   fill: var(--color-primary);
 }
 

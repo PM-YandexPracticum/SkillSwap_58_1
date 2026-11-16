@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useGetAuthMeQuery } from '../api/authApi'
-import { getAuthUser, saveServerAuthUser } from '../model/authUtils'
-import { logout, setAuthUser } from '../model/authSlice'
+import { getAuthUser, saveServerAuthUser, saveUserProfile } from '../model/authUtils'
+import { logout, setAuthUser, setProfile } from '../model/authSlice'
 import { useAppDispatch } from '@/store/hooks'
+import { Skeleton } from '@/shared/ui'
 
 interface SessionGateProps {
   children: ReactNode
@@ -31,10 +32,13 @@ export function SessionGate({ children }: SessionGateProps) {
         name: data.name,
         email: data.email,
         token: savedUser.token,
+        ...('avatarUrl' in data ? { avatarUrl: data.avatarUrl } : {}),
       }
 
       saveServerAuthUser(confirmedUser)
+      saveUserProfile(data)
       dispatch(setAuthUser(confirmedUser))
+      dispatch(setProfile(data))
       setIsFinished(true)
       return
     }
@@ -61,5 +65,5 @@ export function SessionGate({ children }: SessionGateProps) {
     )
   }
 
-  return <p>Проверяем вход...</p>
+  return <Skeleton width="100%" height="100vh" />
 }

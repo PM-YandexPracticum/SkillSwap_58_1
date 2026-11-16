@@ -108,6 +108,20 @@
   color: var(--color-text-main, #253017); /* в макете не muted */
 }
 
+.error {
+  margin: 0;
+  color: var(--color-error, #ef4444);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.success {
+  margin: 0;
+  color: var(--color-success, #22c55e);
+  font-size: 12px;
+  line-height: 16px;
+}
+
 .link {
   color: var(--color-link, #508826);
   text-decoration: none;

@@ -31,11 +31,18 @@ function payload(): RegisterRequest {
     },
   }
 }
-async function register(data: unknown, count = 1, bytes: Uint8Array = png, mime = 'image/png') {
+async function register(
+  data: unknown,
+  count = 1,
+  bytes: Uint8Array = png,
+  mime = 'image/png',
+  avatar?: Blob,
+) {
   const form = new FormData()
   form.append('data', typeof data === 'string' ? data : JSON.stringify(data))
   for (let i = 0; i < count; i++)
     form.append('images', new Blob([bytes], { type: mime }), `image-${i}.png`)
+  if (avatar) form.append('avatar', avatar, 'avatar.png')
   return fetch(`${baseUrl}/auth/register`, { method: 'POST', body: form })
 }
 async function json<T>(response: Response): Promise<T> {
@@ -120,6 +127,158 @@ test('полная регистрация создаёт профиль, нав�
     assert.deepEqual(await profile.json(), me)
   } finally {
     await new Promise<void>((resolve) => restarted.close(() => resolve()))
+  }
+})
+
+test('регистрация сохраняет аватар и пять фото навыка; PATCH заменяет только аватар', async () => {
+  const response = await register(
+    payload(),
+    5,
+    png,
+    'image/png',
+    new Blob([png], { type: 'image/png' }),
+  )
+  assert.equal(response.status, 201)
+  const auth = await json<AuthUser>(response)
+  const headers = { Authorization: `Bearer ${auth.token}` }
+  const me = await json<User>(await fetch(`${baseUrl}/auth/me`, { headers }))
+  assert(me.avatarUrl)
+  assert(me.avatarUrl.startsWith(`/api/uploads/avatars/${auth.id}/`))
+  assert.equal(auth.avatarUrl, me.avatarUrl)
+  const avatarPath = path.join(dataDir, me.avatarUrl.replace('/api/', ''))
+  assert.deepEqual(fs.readFileSync(avatarPath), png)
+  const image = await fetch(`${baseUrl.replace('/api', '')}${me.avatarUrl}`)
+  assert.equal(image.status, 200)
+  assert.match(image.headers.get('content-type') || '', /image\/png/)
+  assert.deepEqual(Buffer.from(await image.arrayBuffer()), png)
+  const saved: StoredUser[] = JSON.parse(fs.readFileSync(path.join(dataDir, 'users.json'), 'utf8'))
+  assert.equal(saved.find((user) => user.id === auth.id)?.avatarUrl, me.avatarUrl)
+  const skill = await json<Skill>(await fetch(`${baseUrl}/skills/${me.canTeach.id}`))
+  assert.equal(skill.imageUrls.length, 5)
+  assert(!skill.imageUrls.includes(me.avatarUrl))
+
+  const body = new FormData()
+  body.append('avatar', new Blob([png], { type: 'image/png' }), 'replacement.png')
+  const patch = await fetch(`${baseUrl}/auth/me`, { method: 'PATCH', headers, body })
+  assert.equal(patch.status, 200)
+  const updated = await json<User>(patch)
+  assert.notEqual(updated.avatarUrl, me.avatarUrl)
+  assert.equal(fs.existsSync(avatarPath), false)
+  assert.equal(fs.readdirSync(path.join(dataDir, 'uploads', 'avatars', auth.id)).length, 1)
+  assert.deepEqual(await json<Skill>(await fetch(`${baseUrl}/skills/${skill.id}`)), skill)
+})
+
+test('регистрация принимает только аватар без фото навыка', async () => {
+  const response = await register(
+    payload(),
+    0,
+    png,
+    'image/png',
+    new Blob([png], { type: 'image/png' }),
+  )
+  assert.equal(response.status, 201)
+  const auth = await json<AuthUser>(response)
+  const me = await json<User>(
+    await fetch(`${baseUrl}/auth/me`, { headers: { Authorization: `Bearer ${auth.token}` } }),
+  )
+  assert(me.avatarUrl)
+  const skill = await json<Skill>(await fetch(`${baseUrl}/skills/${me.canTeach.id}`))
+  assert.deepEqual(skill.imageUrls, [])
+})
+
+test('неверный аватар и два файла avatar отклоняются без изменения базы и файлов', async () => {
+  const usersBefore = fs.readFileSync(path.join(dataDir, 'users.json'), 'utf8')
+  const skillsBefore = fs.readFileSync(path.join(dataDir, 'skills.json'), 'utf8')
+  const uploadsBefore = fs.readdirSync(path.join(dataDir, 'uploads'), { recursive: true })
+  for (const avatar of [
+    new Blob([png], { type: 'text/plain' }),
+    new Blob(['not an image'], { type: 'image/png' }),
+    new Blob([new Uint8Array(2 * 1024 * 1024 + 1)], { type: 'image/png' }),
+  ]) {
+    assert.equal((await register(payload(), 1, png, 'image/png', avatar)).status, 400)
+  }
+  const body = new FormData()
+  body.append('data', JSON.stringify(payload()))
+  for (let i = 0; i < 2; i++)
+    body.append('avatar', new Blob([png], { type: 'image/png' }), 'avatar.png')
+  assert.equal((await fetch(`${baseUrl}/auth/register`, { method: 'POST', body })).status, 400)
+  assert.equal(fs.readFileSync(path.join(dataDir, 'users.json'), 'utf8'), usersBefore)
+  assert.equal(fs.readFileSync(path.join(dataDir, 'skills.json'), 'utf8'), skillsBefore)
+  assert.deepEqual(
+    fs.readdirSync(path.join(dataDir, 'uploads'), { recursive: true }),
+    uploadsBefore,
+  )
+})
+
+test('регистрация без фотографий сохраняет навык с пустым imageUrls после перезапуска', async () => {
+  const data = payload()
+  const response = await register(data, 0)
+  assert.equal(response.status, 201)
+  const auth = await json<AuthUser>(response)
+  const me = await json<User>(
+    await fetch(`${baseUrl}/auth/me`, { headers: { Authorization: `Bearer ${auth.token}` } }),
+  )
+  assert.equal(me.avatarUrl, null)
+  const skillResponse = await fetch(`${baseUrl}/skills/${me.canTeach.id}`)
+  assert.equal(skillResponse.status, 200)
+  const skill = await json<Skill>(skillResponse)
+  assert.equal(skill.authorId, auth.id)
+  assert.equal(skill.title, data.canTeach.title)
+  assert.deepEqual(skill.imageUrls, [])
+  assert.equal(fs.existsSync(path.join(dataDir, 'uploads', 'skills', skill.id)), false)
+
+  const restarted = createApp({ dataDir, defaultDelay: 0 }).listen(0, '127.0.0.1')
+  await once(restarted, 'listening')
+  try {
+    const address = restarted.address()
+    assert(address && typeof address !== 'string')
+    const restartedUrl = `http://127.0.0.1:${address.port}/api`
+    const signedIn = await fetch(`${restartedUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: data.email, password: data.password }),
+    })
+    assert.equal(signedIn.status, 200)
+    assert.deepEqual(await signedIn.json(), auth)
+    const loaded = await fetch(`${restartedUrl}/skills/${skill.id}`)
+    assert.equal(loaded.status, 200)
+    assert.deepEqual(await loaded.json(), skill)
+  } finally {
+    await new Promise<void>((resolve) => restarted.close(() => resolve()))
+  }
+})
+
+test('null и пустой список фото перед отправкой нормализуются в отсутствие файлов', async () => {
+  const emptyImages: (Blob[] | null)[] = [null, []]
+  for (const images of emptyImages) {
+    const form = new FormData()
+    form.append('data', JSON.stringify(payload()))
+    const files = images ?? []
+    files.forEach((file) => form.append('images', file))
+    assert.equal(form.has('images'), false)
+    const response = await fetch(`${baseUrl}/auth/register`, { method: 'POST', body: form })
+    assert.equal(response.status, 201)
+    const auth = await json<AuthUser>(response)
+    const me = await json<User>(
+      await fetch(`${baseUrl}/auth/me`, { headers: { Authorization: `Bearer ${auth.token}` } }),
+    )
+    const skill = await json<Skill>(await fetch(`${baseUrl}/skills/${me.canTeach.id}`))
+    assert.deepEqual(skill.imageUrls, [])
+  }
+})
+
+test('строки null, [] и пустая строка вместо файлов images возвращают 400 без создания записей', async () => {
+  for (const images of ['null', '[]', '']) {
+    const usersBefore = fs.readFileSync(path.join(dataDir, 'users.json'), 'utf8')
+    const skillsBefore = fs.readFileSync(path.join(dataDir, 'skills.json'), 'utf8')
+    const form = new FormData()
+    form.append('data', JSON.stringify(payload()))
+    form.append('images', images)
+    const response = await fetch(`${baseUrl}/auth/register`, { method: 'POST', body: form })
+    assert.equal(response.status, 400)
+    assert.equal(typeof (await json<ApiError>(response)).message, 'string')
+    assert.equal(fs.readFileSync(path.join(dataDir, 'users.json'), 'utf8'), usersBefore)
+    assert.equal(fs.readFileSync(path.join(dataDir, 'skills.json'), 'utf8'), skillsBefore)
   }
 })
 
@@ -294,8 +453,7 @@ test('все поля формы и вложенных объектов обяз
   }
 })
 
-test('обязательные файлы, лимиты, неверные типы и сломанный JSON', async () => {
-  assert.equal((await register(payload(), 0)).status, 400)
+test('лимиты файлов, неверные типы и сломанный JSON', async () => {
   assert.equal((await register(payload(), 6)).status, 400)
   assert.equal((await register(payload(), 1, new Uint8Array(2 * 1024 * 1024 + 1))).status, 400)
   assert.equal((await register(payload(), 1, png, 'text/plain')).status, 400)
@@ -309,15 +467,22 @@ test('ошибка записи пользователя откатывает н
   const snapshot = fs.readFileSync(skillsFile, 'utf8')
   const uploads = path.join(dataDir, 'uploads', 'skills')
   const folders = fs.readdirSync(uploads)
+  const avatars = path.join(dataDir, 'uploads', 'avatars')
+  const avatarFolders = fs.readdirSync(avatars)
   const userFile = path.join(dataDir, 'users.json')
   fs.renameSync(userFile, `${userFile}.backup`)
   fs.mkdirSync(userFile)
   const log = console.error
   console.error = () => {}
   try {
-    assert.equal((await register(payload())).status, 500)
+    assert.equal(
+      (await register(payload(), 1, png, 'image/png', new Blob([png], { type: 'image/png' })))
+        .status,
+      500,
+    )
     assert.equal(fs.readFileSync(skillsFile, 'utf8'), snapshot)
     assert.deepEqual(fs.readdirSync(uploads), folders)
+    assert.deepEqual(fs.readdirSync(avatars), avatarFolders)
   } finally {
     console.error = log
     fs.rmdirSync(userFile)

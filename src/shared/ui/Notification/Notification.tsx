@@ -1,4 +1,5 @@
 import { FC, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import styles from './Notification.module.css'
 
 export type NotificationType = 'success' | 'error' | 'info'
@@ -9,6 +10,8 @@ export interface NotificationProps {
   message?: string
   duration?: number
   onClose: () => void
+  icon?: ReactNode
+  action?: ReactNode
 }
 
 export const Notification: FC<NotificationProps> = ({
@@ -17,6 +20,8 @@ export const Notification: FC<NotificationProps> = ({
   message,
   duration = 5000,
   onClose,
+  icon,
+  action,
 }) => {
   const [isHovered, setIsHovered] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -39,17 +44,19 @@ export const Notification: FC<NotificationProps> = ({
 
   return (
     <div
-      className={`${styles.notification} ${typeClass}`}
+      className={`${styles.notification} ${typeClass}${icon ? ` ${styles.withIcon}` : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {icon && <span className={styles.icon}>{icon}</span>}
       <div className={styles.content}>
         <h4 className={styles.title}>{title}</h4>
         {/* Если message пустой, блок не рендерится, чтобы не было пустого места */}
         {message && <p className={styles.message}>{message}</p>}
+        {action && <div className={styles.action}>{action}</div>}
       </div>
 
-      <button className={styles.closeButton} onClick={onClose} aria-label="Закрыть">
+      <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Закрыть">
         {/* Иконка крестика */}
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path

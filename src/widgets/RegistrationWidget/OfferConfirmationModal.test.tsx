@@ -12,15 +12,15 @@ describe('OfferConfirmationModal', () => {
     onConfirm.mockClear()
   })
 
-  const renderModal = (isOpen = true) =>
+  const renderModal = (props: Partial<Parameters<typeof OfferConfirmationModal>[0]> = {}) =>
     render(
-      <OfferConfirmationModal isOpen={isOpen} onClose={onClose} onConfirm={onConfirm}>
+      <OfferConfirmationModal isOpen onClose={onClose} onConfirm={onConfirm} {...props}>
         <div>Контент навыка</div>
       </OfferConfirmationModal>,
     )
 
   it('не рендерится, когда закрыта', () => {
-    renderModal(false)
+    renderModal({ isOpen: false })
     expect(screen.queryByTestId('modal-overlay')).not.toBeInTheDocument()
   })
 
@@ -70,5 +70,27 @@ describe('OfferConfirmationModal', () => {
 
     await user.click(screen.getByText('Контент навыка'))
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+  // ─── новые тесты: состояние загрузки и ошибки ───────────
+
+  it('при isLoading показывается индикатор и обе кнопки заблокированы', () => {
+    renderModal({ isLoading: true, error: null })
+
+    expect(screen.getByText('Отправляем данные…')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Готово' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Редактировать' })).toBeDisabled()
+  })
+
+  it('при isLoading Escape не закрывает модалку', async () => {
+    const user = userEvent.setup()
+    renderModal({ isLoading: true })
+
+    await user.keyboard('{Escape}')
+    expect(onClose).not.toHaveBeenCalled()
+  })
+  it('ошибка выводится в модалке', () => {
+    renderModal({ error: 'Email уже зарегистрирован' })
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Email уже зарегистрирован')
   })
 })

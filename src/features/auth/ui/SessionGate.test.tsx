@@ -6,11 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LOCAL_STORAGE_KEYS } from '@/shared/lib/constants'
 import authReducer from '../model/authSlice'
 import { SessionGate } from './SessionGate'
+import type { User } from '@/shared/types'
 
 const { queryState, queryMock } = vi.hoisted(() => ({
   queryMock: vi.fn(),
   queryState: {
-    data: undefined as { id: string; name: string; email: string } | undefined,
+    data: undefined as User | undefined,
     error: undefined as { status: number | string } | undefined,
     refetch: vi.fn(),
   },
@@ -34,7 +35,7 @@ function renderSessionGate() {
   const store = configureStore({
     reducer: { auth: authReducer },
     preloadedState: {
-      auth: { user: null },
+      auth: { user: null, profile: null },
     },
   })
 
@@ -65,7 +66,7 @@ describe('SessionGate', () => {
     const store = configureStore({
       reducer: { auth: authReducer },
       preloadedState: {
-        auth: { user: null },
+        auth: { user: null, profile: null },
       },
     })
 
@@ -87,6 +88,19 @@ describe('SessionGate', () => {
       id: 'user-01',
       name: 'Анна',
       email: 'anna.smirnova@example.com',
+      avatarUrl: null,
+      birthDate: '1995-02-08T00:00:00.000Z',
+      gender: 'female',
+      city: 'Москва',
+      bio: 'Люблю рисовать',
+      createdAt: '2025-01-01T00:00:00.000Z',
+      likes: [],
+      canTeach: {
+        id: 'skill-01',
+        category: 'art',
+        subCategory: 'illustration',
+      },
+      wantsToLearn: [],
     }
 
     const store = renderSessionGate()
@@ -94,11 +108,19 @@ describe('SessionGate', () => {
     expect(await screen.findByText('Приложение открыто')).toBeInTheDocument()
 
     const expectedUser = {
-      ...queryState.data,
+      id: queryState.data.id,
+      name: queryState.data.name,
+      email: queryState.data.email,
       token: savedUser.token,
+      avatarUrl: null as string | null,
     }
 
     expect(store.getState().auth.user).toEqual(expectedUser)
+
+    expect(store.getState().auth.profile).toEqual(queryState.data)
+    const savedProfile = localStorage.getItem('skillswap_user_profile')
+    expect(savedProfile).not.toBeNull()
+    expect(JSON.parse(savedProfile ?? 'null')).toEqual(queryState.data)
 
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_USER)
     expect(JSON.parse(saved ?? 'null')).toEqual(expectedUser)
@@ -139,7 +161,7 @@ describe('SessionGate', () => {
   it('не считает пользователя вошедшим, пока сессия проверяется', () => {
     const store = renderSessionGate()
 
-    expect(screen.getByText('Проверяем вход...')).toBeInTheDocument()
+    expect(document.querySelector('[aria-hidden="true"]')).toBeInTheDocument()
     expect(store.getState().auth.user).toBeNull()
     expect(screen.queryByText('Приложение открыто')).not.toBeInTheDocument()
   })

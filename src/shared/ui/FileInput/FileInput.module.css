@@ -38,18 +38,26 @@
 
 /** AVATAR */
 .dropzoneAvatar {
-  width: 72px;
-  height: 72px;
+  width: var(--file-input-avatar-size, 72px);
+  height: var(--file-input-avatar-size, 72px);
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
   cursor: pointer;
+  background-color: var(--color-bg);
   transition: opacity 0.2s ease;
 }
 
 .dropzoneAvatar:hover {
   opacity: 0.8;
+}
+
+.dropzoneAvatarLocked,
+.dropzoneAvatarLocked:hover {
+  cursor: default;
+  opacity: 1;
 }
 
 .avatarIcon {
@@ -63,8 +71,8 @@
 }
 
 .previewAvatar {
-  width: 72px;
-  height: 72px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
 }

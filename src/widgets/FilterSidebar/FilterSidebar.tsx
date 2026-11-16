@@ -1,22 +1,24 @@
-import { Dispatch, SetStateAction, useState } from 'react'
-import { RadioGroup, CheckboxGroup, FilterSection, SkillCategoryGroup, Text } from '../../shared/ui'
-import { Button } from '../../shared/ui/Button'
-import { SKILL_CATEGORIES, CITIES } from '../../shared/lib/constants'
-import { FilterMode, FiltersState, Gender } from '../../shared/types/index'
-import { MODE_OPTIONS, GENDER_OPTIONS } from '../../shared/lib/constants'
-import { CloseIcon } from '@/shared/ui'
+import { useState } from 'react'
+import {
+  RadioGroup,
+  CheckboxGroup,
+  FilterSection,
+  SkillCategoryGroup,
+  Text,
+  Button,
+  CloseIcon,
+} from '@/shared/ui'
+import { SKILL_CATEGORIES, CITIES, MODE_OPTIONS, GENDER_OPTIONS } from '@/shared/lib/constants'
+import { FilterMode, Gender } from '@/shared/types'
 import styles from './FilterSidebar.module.css'
 import clsx from 'clsx'
-
-interface FilterSidebarProps {
-  filters: FiltersState
-  setFilters: Dispatch<SetStateAction<FiltersState>>
-  onReset: () => void
-}
+import { useCatalogFilters } from '@/features/catalog-filter'
 
 const VISIBLE_SKILLS_COUNT = 6
 
-export const FilterSidebar = ({ filters, setFilters, onReset }: FilterSidebarProps) => {
+export const FilterSidebar = () => {
+  const { filters, setFilters, resetFilters } = useCatalogFilters()
+
   const [showAllSkills, setShowAllSkills] = useState(false)
   const [showAllCities, setShowAllCities] = useState(false)
   const [resetCounter, setResetCounter] = useState(0)
@@ -25,7 +27,8 @@ export const FilterSidebar = ({ filters, setFilters, onReset }: FilterSidebarPro
     (filters.mode !== 'all' ? 1 : 0) +
     (filters.gender ? 1 : 0) +
     filters.cities.length +
-    filters.skillIds.length
+    filters.skillIds.length +
+    (filters.name ? 1 : 0)
 
   const visibleCategories = showAllSkills
     ? SKILL_CATEGORIES
@@ -37,7 +40,7 @@ export const FilterSidebar = ({ filters, setFilters, onReset }: FilterSidebarPro
     setResetCounter((prev) => prev + 1)
     setShowAllSkills(false)
     setShowAllCities(false)
-    onReset()
+    resetFilters()
   }
 
   return (

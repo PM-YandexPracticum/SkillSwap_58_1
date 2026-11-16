@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 import styles from './Button.module.css'
 import { ReactNode } from 'react'
+import { Skeleton } from '../Skeleton'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary'
 export type ButtonSize = 'sm' | 'md' | 'lg'
@@ -10,6 +11,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize
   icon?: ReactNode
   trailingIcon?: ReactNode
+  isLoading?: boolean
 }
 
 export const Button = ({
@@ -21,6 +23,7 @@ export const Button = ({
   className,
   disabled,
   type = 'button',
+  isLoading = false,
   ...props
 }: ButtonProps) => {
   const isDisabled = disabled
@@ -33,10 +36,12 @@ export const Button = ({
         styles[`variant_${variant}`],
         styles[`size_${size}`],
         isDisabled && styles.disabled,
+        isLoading && styles.loading,
         className,
       )}
-      disabled={isDisabled}
-      aria-disabled={isDisabled}
+      disabled={isDisabled || isLoading}
+      aria-disabled={isDisabled || isLoading}
+      aria-busy={isLoading}
       {...props}
     >
       {icon && (
@@ -50,6 +55,7 @@ export const Button = ({
           {trailingIcon}
         </span>
       )}
+      {isLoading && <Skeleton className={styles.skeleton} />}
     </button>
   )
 }

@@ -4,6 +4,14 @@ import { describe, expect, it, vi } from 'vitest'
 import type { User } from '@/shared/types'
 import { CatalogSection } from './CatalogSection'
 
+const { useOutgoingPendingSkillIdsMock } = vi.hoisted(() => ({
+  useOutgoingPendingSkillIdsMock: vi.fn<() => string[]>(() => []),
+}))
+
+vi.mock('@/features/exchange', () => ({
+  useOutgoingPendingSkillIds: useOutgoingPendingSkillIdsMock,
+}))
+
 function createUsers(count: number): User[] {
   return Array.from({ length: count }, (_, index) => ({
     id: `user-${index + 1}`,
@@ -26,7 +34,11 @@ function createUsers(count: number): User[] {
 }
 
 describe('CatalogSection', () => {
-  it('показывает 3 карточки, раскрывает до 9 и сворачивает обратно', async () => {
+  beforeEach(() => {
+    useOutgoingPendingSkillIdsMock.mockReturnValue([])
+  })
+
+  it('показывает 3 карточки, раскрывает все загруженные и сворачивает обратно', async () => {
     const user = userEvent.setup()
 
     render(
@@ -46,7 +58,7 @@ describe('CatalogSection', () => {
 
     await user.click(toggle)
 
-    expect(screen.getAllByRole('button', { name: 'Подробнее' })).toHaveLength(9)
+    expect(screen.getAllByRole('button', { name: 'Подробнее' })).toHaveLength(12)
     expect(screen.getByRole('button', { name: 'Скрыть' })).toHaveAttribute('aria-expanded', 'true')
 
     await user.click(screen.getByRole('button', { name: 'Скрыть' }))
@@ -106,5 +118,66 @@ describe('CatalogSection', () => {
 
     expect(screen.getAllByRole('button', { name: 'Подробнее' })).toHaveLength(3)
     expect(screen.queryByRole('button', { name: 'Смотреть все' })).not.toBeInTheDocument()
+  })
+
+  it('показывает «Обмен предложен» только у карточки с предложенным навыком', () => {
+    useOutgoingPendingSkillIdsMock.mockReturnValue(['skill-2'])
+
+    render(
+      <CatalogSection
+        title="Каталог"
+        users={createUsers(3)}
+        favoriteIds={[]}
+        onDetails={() => {}}
+        onFavoriteToggle={() => {}}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Обмен предложен' })).toBeDisabled()
+    expect(screen.getAllByRole('button', { name: 'Подробнее' })).toHaveLength(2)
+  })
+
+  it('показывает 9 скелетонов при isLoadingMore = true и hasMore = true', async () => {
+    const user = userEvent.setup()
+    render(
+      <CatalogSection
+        title="Тест скелетонов"
+        users={createUsers(5)}
+        favoriteIds={[]}
+        onDetails={() => {}}
+        onFavoriteToggle={() => {}}
+        hasMore={true}
+        isLoadingMore={true}
+      />,
+    )
+
+    expect(screen.queryAllByTestId('user-card-skeleton')).toHaveLength(0)
+
+    await user.click(screen.getByRole('button', { name: 'Смотреть все' }))
+
+    expect(screen.queryByText('Загружаем ещё…')).not.toBeInTheDocument()
+
+    const skeletons = screen.getAllByTestId('user-card-skeleton')
+    expect(skeletons).toHaveLength(9)
+  })
+
+  it('не показывает скелетоны, если isLoadingMore = false', async () => {
+    const user = userEvent.setup()
+    render(
+      <CatalogSection
+        title="Тест без загрузки"
+        users={createUsers(5)}
+        favoriteIds={[]}
+        onDetails={() => {}}
+        onFavoriteToggle={() => {}}
+        hasMore={true}
+        isLoadingMore={false}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Смотреть все' }))
+
+    const skeletons = screen.queryAllByTestId('user-card-skeleton')
+    expect(skeletons).toHaveLength(0)
   })
 })

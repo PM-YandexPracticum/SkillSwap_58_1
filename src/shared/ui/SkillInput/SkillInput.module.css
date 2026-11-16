@@ -1,0 +1,15 @@
+.clearButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.clearButton:hover {
+  color: var(--color-text);
+}

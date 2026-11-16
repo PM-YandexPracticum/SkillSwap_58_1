@@ -90,6 +90,13 @@ describe('Select', () => {
     expect(input).toHaveAttribute('aria-expanded', 'false')
   })
 
+  it('не показывает кнопку очистки, когда clearable равен false', () => {
+    render(<Select options={options} onChange={vi.fn()} value="one" clearable={false} />)
+
+    expect(screen.getByText('Первый вариант')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Очистить выбор' })).not.toBeInTheDocument()
+  })
+
   it('показывает кнопку очистки и передаёт пустой массив после очистки', () => {
     const onChange = vi.fn()
     render(<Select options={options} onChange={onChange} />)
@@ -108,6 +115,21 @@ describe('Select', () => {
     const { container } = render(<Select options={options} onChange={vi.fn()} disabled />)
 
     expect(container.querySelector('input')).toBeDisabled()
+  })
+
+  it('рисует контурный шеврон без вертикального разделителя', () => {
+    const { container } = render(
+      <Select label="Пол" options={options} onChange={vi.fn()} chevron="outline" />,
+    )
+
+    expect(container.querySelector('[class*="indicatorSeparator"]')).toBeNull()
+    expect(container.querySelector('svg path')).toHaveAttribute('stroke', 'currentColor')
+  })
+
+  it('показывает переданное value', () => {
+    render(<Select label="Пол" options={options} value="two" onChange={vi.fn()} />)
+
+    expect(screen.getByText('Второй вариант')).toBeInTheDocument()
   })
 
   it('прокидывает ref на поле выбора', () => {

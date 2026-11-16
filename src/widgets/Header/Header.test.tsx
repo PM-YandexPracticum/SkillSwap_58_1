@@ -4,6 +4,7 @@ import { ROUTES } from '@/shared/lib/constants'
 import { Header } from './index'
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
+import notificationHistoryReducer from '@/features/notifications/model/notificationHistorySlice'
 import authReducer from '@/features/auth/model/authSlice'
 import userEvent from '@testing-library/user-event'
 import { Route, Routes } from 'react-router-dom'
@@ -11,9 +12,9 @@ import { LOCAL_STORAGE_KEYS } from '@/shared/lib/constants'
 
 function renderHeader() {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, notificationHistory: notificationHistoryReducer },
     preloadedState: {
-      auth: { user: null },
+      auth: { user: null, profile: null },
     },
   })
 
@@ -73,9 +74,9 @@ describe('Header', () => {
     localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_USER, JSON.stringify(user))
 
     const store = configureStore({
-      reducer: { auth: authReducer },
+      reducer: { auth: authReducer, notificationHistory: notificationHistoryReducer },
       preloadedState: {
-        auth: { user },
+        auth: { user, profile: null },
       },
     })
 

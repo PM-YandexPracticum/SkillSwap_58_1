@@ -28,3 +28,27 @@
   margin: 0;
   color: var(--text-primary, #333);
 }
+.layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 3fr);
+  align-items: start;
+  gap: var(--space-lg);
+}
+
+.owner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.owner p {
+  margin: var(--space-xs) 0 0;
+  color: var(--color-text-secondary);
+}
+
+@media (width <= 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

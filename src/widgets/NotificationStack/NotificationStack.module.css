@@ -1,0 +1,29 @@
+.stack {
+  position: fixed;
+  z-index: 1000;
+  top: calc(2 * var(--space-2xl));
+  right: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: calc(100vw - 2 * var(--space-lg));
+}
+
+.link {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  color: #253017;
+  text-decoration: none;
+  border: 1px solid currentcolor;
+  border-radius: var(--radius-md);
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+@media (width <= 768px) {
+  .stack {
+    top: calc(4 * var(--space-2xl));
+  }
+}

@@ -20,7 +20,7 @@ function createStore() {
   return configureStore({
     reducer: { auth: authReducer },
     preloadedState: {
-      auth: { user: null },
+      auth: { user: null, profile: null },
     },
   })
 }
@@ -52,6 +52,7 @@ describe('authSlice', () => {
     const store = createStore()
 
     saveServerAuthUser(user)
+    localStorage.setItem('skillswap_user_profile', JSON.stringify({ id: user.id }))
     store.dispatch(setAuthUser(user))
 
     await store.dispatch(logout())
@@ -59,6 +60,7 @@ describe('authSlice', () => {
     expect(selectAuthUser(store.getState())).toBeNull()
     expect(selectIsAuthenticated(store.getState())).toBe(false)
     expect(localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_USER)).toBeNull()
+    expect(localStorage.getItem('skillswap_user_profile')).toBeNull()
   })
 
   it('не считает пользователя без токена авторизованным', () => {

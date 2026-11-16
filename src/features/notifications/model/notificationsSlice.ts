@@ -9,6 +9,7 @@ export type NotificationItem = {
   duration: number
   createdAt: string
   isRead: boolean
+  exchangeSkillId?: string
 }
 
 type NewNotification = Omit<NotificationItem, 'id' | 'createdAt' | 'isRead'>

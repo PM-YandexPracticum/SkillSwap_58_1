@@ -44,3 +44,18 @@
   flex: 0 0 204px;
   height: 48px;
 }
+
+.pending {
+  margin: 12px 0 0;
+  font-size: var(--font-size-base);
+  line-height: 24px;
+  letter-spacing: var(--letter-spacing-base);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  margin: 12px 0 0;
+  color: var(--color-error, #ef4444);
+  font-size: 12px;
+  line-height: 16px;
+}

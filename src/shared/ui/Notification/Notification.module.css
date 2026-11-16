@@ -7,7 +7,7 @@
   background-color: var(--bg-color, #fff);
   border-left: 4px solid var(--border-color, #ccc);
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
-  min-width: 300px;
+  min-width: min(300px, calc(100vw - 2 * var(--space-lg)));
   max-width: 400px;
   position: relative;
   box-sizing: border-box;
@@ -66,4 +66,30 @@
 .closeButton:hover {
   background-color: rgb(0 0 0 / 5%);
   color: #333;
+}
+
+.withIcon {
+  gap: var(--space-sm);
+  align-items: flex-start;
+  border-left: none;
+}
+
+.withIcon .content {
+  min-width: 0;
+  padding-right: 0;
+  overflow-wrap: anywhere;
+}
+
+.icon {
+  display: grid;
+  flex: 0 0 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--text-primary, #333);
+  background-color: rgb(255 255 255 / 60%);
+  border-radius: 50%;
+}
+
+.action {
+  margin-top: var(--space-sm);
 }

@@ -1,4 +1,4 @@
-import type { AuthUser } from '@/shared/types'
+import type { AuthUser, User } from '@/shared/types'
 import { LOCAL_STORAGE_KEYS } from '@/shared/lib/constants'
 
 /** Читает текущего авторизованного пользователя из localStorage */
@@ -25,11 +25,17 @@ export function getAuthUser(): AuthUser | null {
       typeof user.token === 'string' &&
       user.token.length > 0
     ) {
+      const avatarUrl =
+        'avatarUrl' in user && (typeof user.avatarUrl === 'string' || user.avatarUrl === null)
+          ? user.avatarUrl
+          : undefined
+
       return {
         id: user.id,
         name: user.name,
         email: user.email,
         token: user.token,
+        ...(avatarUrl !== undefined ? { avatarUrl } : {}),
       }
     }
 
@@ -47,4 +53,16 @@ export function saveServerAuthUser(user: AuthUser): void {
 /** Удаляет пользователя из localStorage (logout) */
 export function clearAuthUser(): void {
   localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_USER)
+}
+
+const PROFILE_STORAGE_KEY = 'skillswap_user_profile'
+
+/** Сохраняет полный профиль, полученный от сервера */
+export function saveUserProfile(profile: User): void {
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile))
+}
+
+/** Удаляет сохраненный профиль */
+export function clearUserProfile(): void {
+  localStorage.removeItem(PROFILE_STORAGE_KEY)
 }

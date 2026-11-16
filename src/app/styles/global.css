@@ -42,6 +42,10 @@
   --chip-home-coziness-bg: #f7ebe5;
   --chip-health-bg: #e9f7e7;
 
+  /* Skeleton */
+  --skeleton-bg: #d1d5db;
+  --skeleton-shine: rgb(255 255 255 / 50%);
+
   /* Typography */
   --font-family-base: 'Roboto', 'Open Sans', system-ui, -apple-system, sans-serif;
   --font-family-heading: 'Jost', 'Open Sans', system-ui, -apple-system, sans-serif;
@@ -86,6 +90,8 @@
   --chip-education-bg: #395560;
   --chip-home-coziness-bg: #604639;
   --chip-health-bg: #3e6039;
+  --skeleton-bg: #475569;
+  --skeleton-shine: rgb(255 255 255 / 12%);
 }
 
 /* ─── Reset ──────────────────────────────────────────────── */

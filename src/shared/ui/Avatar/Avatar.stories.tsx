@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, waitFor } from 'storybook/test'
 
 import { Avatar } from './Avatar'
+import styles from './Avatar.module.css'
 
 const meta = {
   component: Avatar,
@@ -30,20 +31,25 @@ export const Large: Story = {
   args: { size: 'lg' },
 }
 
-/** src === null — компонент ничего не рендерит */
 export const NoSource: Story = {
   args: { src: null },
   play: async ({ canvas }) => {
-    await expect(canvas.queryByRole('img')).toBeNull()
+    await expect(canvas.getByRole('img', { name: 'Иван Петров' })).toHaveClass(styles.fallback)
   },
 }
 
-/** Битая картинка: onError переводит компонент в hasError и он исчезает из DOM */
+export const EmptySource: Story = {
+  args: { src: '' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('img', { name: 'Иван Петров' })).toHaveClass(styles.fallback)
+  },
+}
+
 export const BrokenImage: Story = {
   args: { src: '/db/not-an-image.png' },
   play: async ({ canvas }) => {
     await waitFor(async () => {
-      await expect(canvas.queryByRole('img')).toBeNull()
+      await expect(canvas.getByRole('img', { name: 'Иван Петров' })).toHaveClass(styles.fallback)
     })
   },
 }

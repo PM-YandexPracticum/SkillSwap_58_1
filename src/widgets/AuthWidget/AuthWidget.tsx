@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { useAuthForm } from '@/features/auth/model/useAuthForm'
-import { Button } from '@/shared/ui'
-import { TextInput } from '@/shared/ui'
+import { TextInput, Button } from '@/shared/ui'
 import styles from './AuthWidget.module.css'
 
-export function AuthWidget() {
-  const { register, handleSubmit, errors, isSubmitting, error } = useAuthForm()
+export function AuthWidget({ returnTo }: { returnTo?: string }) {
+  const { register, handleSubmit, errors, isSubmitting, error } = useAuthForm(returnTo)
   const [passwordVisible, setPasswordVisible] = useState(false)
 
   return (
@@ -79,8 +78,8 @@ export function AuthWidget() {
           </p>
         ) : null}
 
-        <Button type="submit" variant="primary" className={styles.submit} disabled={isSubmitting}>
-          {isSubmitting ? 'Входим...' : 'Войти'}
+        <Button type="submit" variant="primary" className={styles.submit} isLoading={isSubmitting}>
+          Войти
         </Button>
       </form>
     </section>

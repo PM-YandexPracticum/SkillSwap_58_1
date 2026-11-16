@@ -148,4 +148,39 @@ describe('CatalogUserCard', () => {
 
     expect(favoriteButton.getAttribute('aria-pressed')).toBe('true')
   })
+
+  it('показывает «Обмен предложен» вместо «Подробнее», если обмен предложен', () => {
+    render(
+      <CatalogUserCard
+        user={createUser()}
+        isFavorite={false}
+        onDetails={vi.fn()}
+        onFavoriteToggle={vi.fn()}
+        isExchangeProposed
+      />,
+    )
+
+    const button = screen.getByRole('button', { name: 'Обмен предложен' })
+
+    expect(button).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Подробнее' })).not.toBeInTheDocument()
+  })
+
+  it('не вызывает onDetails, если обмен предложен', () => {
+    const onDetails = vi.fn()
+
+    render(
+      <CatalogUserCard
+        user={createUser()}
+        isFavorite={false}
+        onDetails={onDetails}
+        onFavoriteToggle={vi.fn()}
+        isExchangeProposed
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Обмен предложен' }))
+
+    expect(onDetails).not.toHaveBeenCalled()
+  })
 })

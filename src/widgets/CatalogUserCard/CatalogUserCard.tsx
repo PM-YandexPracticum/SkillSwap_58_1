@@ -2,7 +2,7 @@ import { Text, Title } from '@/shared/ui'
 import { Card } from '@/shared/ui'
 import { Avatar } from '@/shared/ui'
 import { Chip } from '@/shared/ui'
-import { Button } from '@/shared/ui'
+import { Button, ClockIcon } from '@/shared/ui'
 import { getAgeWithDeclension } from '@/shared/lib/helpers'
 import { SKILL_CATEGORIES } from '@/shared/lib/constants'
 import type { User } from '@/shared/types'
@@ -14,6 +14,7 @@ interface CatalogUserCardProps {
   isFavorite: boolean
   onDetails: () => void
   onFavoriteToggle: () => void
+  isExchangeProposed?: boolean
 }
 
 const MAX_VISIBLE_SKILLS = 2
@@ -48,6 +49,7 @@ export function CatalogUserCard({
   isFavorite,
   onDetails,
   onFavoriteToggle,
+  isExchangeProposed = false,
 }: CatalogUserCardProps) {
   const teachCategory = SKILL_CATEGORIES.find((category) => category.id === user.canTeach.category)
 
@@ -114,13 +116,23 @@ export function CatalogUserCard({
             <Chip key={skill.id} label={skill.title} category={skill.category} />
           ))}
 
-          {remainingSkillsCount > 0 && <Chip label={`+${remainingSkillsCount}`} />}
+          {remainingSkillsCount > 0 && (
+            <span className={styles.remainingSkills}>
+              <Chip label={`+${remainingSkillsCount}`} />
+            </span>
+          )}
         </div>
       </div>
 
-      <Button variant="primary" className={styles.detailsButton} onClick={onDetails}>
-        Подробнее
-      </Button>
+      {isExchangeProposed ? (
+        <Button variant="secondary" icon={<ClockIcon />} className={styles.detailsButton} disabled>
+          Обмен предложен
+        </Button>
+      ) : (
+        <Button variant="primary" className={styles.detailsButton} onClick={onDetails}>
+          Подробнее
+        </Button>
+      )}
     </Card>
   )
 }

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "swap-01",
+    "skillId": "skill-01",
+    "fromUserId": "user-05",
+    "toUserId": "user-01",
+    "status": "pending",
+    "createdAt": "2025-06-02T09:00:00.000Z",
+    "updatedAt": "2025-06-02T09:00:00.000Z"
+  },
+  {
+    "id": "swap-02",
+    "skillId": "skill-07",
+    "fromUserId": "user-01",
+    "toUserId": "user-07",
+    "status": "pending",
+    "createdAt": "2025-06-03T09:00:00.000Z",
+    "updatedAt": "2025-06-03T09:00:00.000Z"
+  },
+  {
+    "id": "swap-03",
+    "skillId": "skill-09",
+    "fromUserId": "user-01",
+    "toUserId": "user-09",
+    "status": "accepted",
+    "createdAt": "2025-06-04T09:00:00.000Z",
+    "updatedAt": "2025-06-05T12:30:00.000Z"
+  },
+  {
+    "id": "swap-04",
+    "skillId": "skill-11",
+    "fromUserId": "user-01",
+    "toUserId": "user-11",
+    "status": "rejected",
+    "createdAt": "2025-06-06T09:00:00.000Z",
+    "updatedAt": "2025-06-07T18:15:00.000Z"
+  }
+]

@@ -14,8 +14,13 @@ const initialState: SkillsState = {
   error: null,
 }
 
-export const loadSkills = createAsyncThunk('skills/load', async () => {
-  const data = await fetchSkills()
+interface LoadSkillsParams {
+  type?: string
+  category?: string
+}
+
+export const loadSkills = createAsyncThunk('skills/load', async (params?: LoadSkillsParams) => {
+  const data = await fetchSkills(params)
   return data
 })
 

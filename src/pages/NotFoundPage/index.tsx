@@ -1,10 +1,5 @@
-// TODO: реализовать страницу NotFoundPage
+import { ErrorWidget } from '@/widgets/ErrorWidget'
 
 export default function NotFoundPage() {
-  return (
-    <main>
-      <h1>NotFoundPage</h1>
-      <p>Страница в разработке</p>
-    </main>
-  )
+  return <ErrorWidget type={404} />
 }

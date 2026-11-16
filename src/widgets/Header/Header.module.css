@@ -41,7 +41,13 @@
 }
 
 .compact .closeButton {
+  color: var(--color-text-main);
   background-color: var(--color-bg-surface);
+}
+
+.compact .closeButton svg {
+  width: 12px;
+  height: 12px;
 }
 
 .skillsMenu {

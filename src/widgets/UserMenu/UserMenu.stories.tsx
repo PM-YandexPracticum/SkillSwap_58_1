@@ -4,6 +4,7 @@ import { Provider } from 'react-redux'
 import { userEvent, within } from 'storybook/test'
 import { UserMenu } from './index'
 import * as authUtils from '@/features/auth/model/authUtils'
+import notificationHistoryReducer from '@/features/notifications/model/notificationHistorySlice'
 import authReducer from '@/features/auth/model/authSlice'
 import { LOCAL_STORAGE_KEYS } from '@/shared/lib/constants'
 
@@ -13,8 +14,8 @@ const meta = {
   decorators: [
     (Story) => {
       const store = configureStore({
-        reducer: { auth: authReducer },
-        preloadedState: { auth: { user: authUtils.getAuthUser() } },
+        reducer: { auth: authReducer, notificationHistory: notificationHistoryReducer },
+        preloadedState: { auth: { user: authUtils.getAuthUser(), profile: null } },
       })
 
       return (
