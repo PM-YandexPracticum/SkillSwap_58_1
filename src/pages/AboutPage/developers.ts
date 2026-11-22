@@ -91,8 +91,9 @@ export const developers: Developer[] = [
   },
   {
     name: 'Игорь',
-    role: placeholderRole,
-    about: placeholderAbout,
+    role: 'Frontend-разработчик, мастер по фиксам',
+    about:
+      'Пишу фронтенд на React и TypeScript, параллельно делаю сайты на фрилансе. В SkillSwap занимался фиксами: вёрстка, формы, навигация и тёмная тема.',
     avatar: 'https://github.com/igorasha26.png',
     github: 'https://github.com/igorasha26',
   },
